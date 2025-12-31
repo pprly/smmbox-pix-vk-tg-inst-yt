@@ -12,7 +12,6 @@ SMMBOX_API_URL = 'https://smmbox.com/api/v1'
 
 # Настройки постинга
 POSTS_PER_DAY = 7
-PUBLISH_DELAY_SECONDS = int(os.getenv('PUBLISH_DELAY_SECONDS', 60))  # Задержка перед публикацией (по умолчанию 60 секунд)
 
 # Проверка наличия обязательных переменных
 if not TELEGRAM_BOT_TOKEN:

@@ -165,26 +165,26 @@ async def confirm_title(callback: CallbackQuery, state: FSMContext):
         preview_url=video_info.get('thumbnail')
     )
     
-    # Публикуем тот же текст на стену сообщества
+    # Публикуем тот же текст на стену сообщества (через 1 минуту после клипа)
     wall_result = smmbox_api.post_text_to_wall(
         text=title,
-        scheduled_timestamp=schedule_info['scheduled_timestamp']
+        scheduled_timestamp=schedule_info['scheduled_timestamp'] + 60  # +1 минута
     )
     
+    # Получаем статистику
+    stats = scheduler.get_stats()
+    scheduled_dt = schedule_info['scheduled_datetime']
+    
     if clip_result and wall_result:
-        # Отмечаем как опубликованное в планировщике
+        # Отмечаем как опубликованное ТОЛЬКО если оба поста успешны
         scheduler.mark_as_posted(schedule_info['id'])
         
-        # Получаем статистику
-        stats = scheduler.get_stats()
-        
-        scheduled_dt = schedule_info['scheduled_datetime']
         await callback.message.edit_text(
             f"✅ Видео добавлено в отложенные!\n\n"
             f"📝 Название: <b>{title}</b>\n"
             f"🎬 Платформа: {video_info.get('platform', 'Unknown')}\n"
             f"📅 Запланировано на: <b>{scheduled_dt.strftime('%d.%m.%Y в %H:%M')}</b>\n"
-            f"📌 Клип + пост на стене\n\n"
+            f"📌 Клип + пост на стене (+1 мин)\n\n"
             f"📊 Статистика очереди:\n"
             f"• Сегодня: {stats['today']}/{stats['posts_per_day_limit']}\n"
             f"• Завтра: {stats['tomorrow']}/{stats['posts_per_day_limit']}\n"
@@ -193,15 +193,13 @@ async def confirm_title(callback: CallbackQuery, state: FSMContext):
         )
     elif clip_result and not wall_result:
         # Клип загрузился, но пост на стену - нет
-        scheduler.mark_as_posted(schedule_info['id'])
-        stats = scheduler.get_stats()
-        scheduled_dt = schedule_info['scheduled_datetime']
+        # НЕ помечаем как опубликованное, чтобы можно было попробовать снова
         
         await callback.message.edit_text(
-            f"⚠️ Видео добавлено, но пост на стену не создан\n\n"
+            f"⚠️ Клип добавлен, но пост на стену не создан\n\n"
             f"📝 Название: <b>{title}</b>\n"
             f"📅 Запланировано на: <b>{scheduled_dt.strftime('%d.%m.%Y в %H:%M')}</b>\n"
-            f"📌 Только клип (проверь логи)\n\n"
+            f"📌 Только клип (проверь логи для деталей)\n\n"
             f"📊 Статистика очереди:\n"
             f"• Сегодня: {stats['today']}/{stats['posts_per_day_limit']}\n"
             f"• Завтра: {stats['tomorrow']}/{stats['posts_per_day_limit']}\n"
@@ -265,26 +263,26 @@ async def process_custom_title(message: Message, state: FSMContext):
         preview_url=video_info.get('thumbnail')
     )
     
-    # Публикуем тот же текст на стену сообщества
+    # Публикуем тот же текст на стену сообщества (через 1 минуту после клипа)
     wall_result = smmbox_api.post_text_to_wall(
         text=custom_title,
-        scheduled_timestamp=schedule_info['scheduled_timestamp']
+        scheduled_timestamp=schedule_info['scheduled_timestamp'] + 60  # +1 минута
     )
     
+    # Получаем статистику
+    stats = scheduler.get_stats()
+    scheduled_dt = schedule_info['scheduled_datetime']
+    
     if clip_result and wall_result:
-        # Отмечаем как опубликованное в планировщике
+        # Отмечаем как опубликованное ТОЛЬКО если оба поста успешны
         scheduler.mark_as_posted(schedule_info['id'])
         
-        # Получаем статистику
-        stats = scheduler.get_stats()
-        
-        scheduled_dt = schedule_info['scheduled_datetime']
         await processing_msg.edit_text(
             f"✅ Видео добавлено в отложенные!\n\n"
             f"📝 Название: <b>{custom_title}</b>\n"
             f"🎬 Платформа: {video_info.get('platform', 'Unknown')}\n"
             f"📅 Запланировано на: <b>{scheduled_dt.strftime('%d.%m.%Y в %H:%M')}</b>\n"
-            f"📌 Клип + пост на стене\n\n"
+            f"📌 Клип + пост на стене (+1 мин)\n\n"
             f"📊 Статистика очереди:\n"
             f"• Сегодня: {stats['today']}/{stats['posts_per_day_limit']}\n"
             f"• Завтра: {stats['tomorrow']}/{stats['posts_per_day_limit']}\n"
@@ -292,15 +290,14 @@ async def process_custom_title(message: Message, state: FSMContext):
             parse_mode="HTML"
         )
     elif clip_result and not wall_result:
-        scheduler.mark_as_posted(schedule_info['id'])
-        stats = scheduler.get_stats()
-        scheduled_dt = schedule_info['scheduled_datetime']
+        # Клип загрузился, но пост на стену - нет
+        # НЕ помечаем как опубликованное
         
         await processing_msg.edit_text(
-            f"⚠️ Видео добавлено, но пост на стену не создан\n\n"
+            f"⚠️ Клип добавлен, но пост на стену не создан\n\n"
             f"📝 Название: <b>{custom_title}</b>\n"
             f"📅 Запланировано на: <b>{scheduled_dt.strftime('%d.%m.%Y в %H:%M')}</b>\n"
-            f"📌 Только клип (проверь логи)\n\n"
+            f"📌 Только клип (проверь логи для деталей)\n\n"
             f"📊 Статистика очереди:\n"
             f"• Сегодня: {stats['today']}/{stats['posts_per_day_limit']}\n"
             f"• Завтра: {stats['tomorrow']}/{stats['posts_per_day_limit']}\n"
