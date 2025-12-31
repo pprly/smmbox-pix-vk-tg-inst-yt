@@ -68,20 +68,48 @@ class PostScheduler:
             
             if posts_count < self.posts_per_day:
                 # Есть свободные слоты в этот день
-                # Рассчитываем время для нового поста
-                slot_time = self._calculate_slot_time(current_date, posts_count)
-                
-                # Если слот в прошлом, берём текущее время + 5 минут
-                slot_timestamp = int(slot_time.timestamp())
-                now_timestamp = int(now.timestamp())
-                
-                if slot_timestamp < now_timestamp:
-                    slot_timestamp = now_timestamp + 300  # +5 минут от текущего времени
-                
-                return slot_timestamp
+                # Проверяем каждый слот пока не найдём свободный
+                for slot_number in range(self.posts_per_day):
+                    slot_time = self._calculate_slot_time(current_date, slot_number)
+                    slot_timestamp = int(slot_time.timestamp())
+                    
+                    # Проверяем, не занят ли этот конкретный timestamp
+                    if not self._is_slot_taken(slot_timestamp):
+                        # Если слот в прошлом, берём текущее время + 5 минут
+                        now_timestamp = int(now.timestamp())
+                        
+                        if slot_timestamp < now_timestamp:
+                            slot_timestamp = now_timestamp + 300  # +5 минут от текущего времени
+                        
+                        return slot_timestamp
             
             # Переходим к следующему дню
             current_date += timedelta(days=1)
+    
+    def _is_slot_taken(self, timestamp: int) -> bool:
+        """
+        Проверить, занят ли конкретный временной слот
+        
+        Args:
+            timestamp: Unix timestamp для проверки
+            
+        Returns:
+            True если слот занят, False если свободен
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Проверяем есть ли посты на это точное время
+        cursor.execute('''
+            SELECT COUNT(*) FROM scheduled_posts 
+            WHERE scheduled_date = ?
+            AND status = 'pending'
+        ''', (timestamp,))
+        
+        count = cursor.fetchone()[0]
+        conn.close()
+        
+        return count > 0
     
     def _calculate_slot_time(self, date: datetime, slot_number: int) -> datetime:
         """
@@ -93,20 +121,28 @@ class PostScheduler:
         """
         import random
         
+        # Фиксированные минуты для каждого слота (избегаем :00 и :30)
+        # Это гарантирует что один и тот же слот всегда даст одно и то же время
+        slot_minutes = [17, 42, 13, 51, 24, 38, 56]  # Разные минуты для каждого слота
+        
         # Распределяем посты с 8:00 до 22:00 (14 часов)
-        # 7 постов = каждые 2 часа
+        # Минимальный интервал: 2 часа между постами
         start_hour = 8
-        interval_hours = 14 / self.posts_per_day
+        base_interval_hours = 2.0  # 2 часа минимум
         
-        post_hour = start_hour + (slot_number * interval_hours)
+        # Добавляем случайное смещение от 0 до +30 минут (в часах)
+        # ВАЖНО: используем slot_number как seed для random, чтобы один слот всегда давал одно смещение
+        random.seed(f"{date.year}{date.month}{date.day}{slot_number}")
+        random_offset = random.uniform(0, 0.5)  # 0-30 минут дополнительно
+        random.seed()  # Сбрасываем seed
+        
+        post_hour = start_hour + (slot_number * base_interval_hours) + random_offset
+        
+        # Ограничиваем диапазон 8:00 - 22:00
+        post_hour = max(8.0, min(21.9, post_hour))
+        
         hour = int(post_hour)
-        
-        # Генерируем случайные минуты, избегая :00 и :30
-        # Диапазоны: 5-25 или 35-55
-        if random.choice([True, False]):
-            minute = random.randint(5, 25)  # 5-25 минут
-        else:
-            minute = random.randint(35, 55)  # 35-55 минут
+        minute = slot_minutes[slot_number % len(slot_minutes)]
         
         return datetime(date.year, date.month, date.day, hour, minute)
     
