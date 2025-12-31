@@ -91,6 +91,8 @@ class PostScheduler:
             date: Дата (год, месяц, день)
             slot_number: Номер слота (0-6 для 7 постов в день)
         """
+        import random
+        
         # Распределяем посты с 8:00 до 22:00 (14 часов)
         # 7 постов = каждые 2 часа
         start_hour = 8
@@ -98,7 +100,13 @@ class PostScheduler:
         
         post_hour = start_hour + (slot_number * interval_hours)
         hour = int(post_hour)
-        minute = int((post_hour - hour) * 60)
+        
+        # Генерируем случайные минуты, избегая :00 и :30
+        # Диапазоны: 5-25 или 35-55
+        if random.choice([True, False]):
+            minute = random.randint(5, 25)  # 5-25 минут
+        else:
+            minute = random.randint(35, 55)  # 35-55 минут
         
         return datetime(date.year, date.month, date.day, hour, minute)
     

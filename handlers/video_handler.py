@@ -36,7 +36,7 @@ async def cmd_start(message: Message, state: FSMContext):
     """
     await state.clear()
     await message.answer(
-        "👋 Привет! Я бот для загрузки Shorts/Reels в VK как клипов.\n\n"
+        "👋 Привет! Я бот для загрузки Shorts/Reels в VK.\n\n"
         "Отправь мне ссылку на:\n"
         "• YouTube Shorts\n"
         "• TikTok видео\n"
@@ -157,28 +157,19 @@ async def confirm_title(callback: CallbackQuery, state: FSMContext):
         platform=video_info.get('platform', 'Unknown')
     )
     
-    # 1. Публикуем видео (VK конвертирует в клип и публикует сразу)
-    clip_result = smmbox_api.post_video_clip_to_wall(
+    # Публикуем видео с текстом на стену (VK конвертирует в клип автоматически)
+    result = smmbox_api.post_video_clip_to_wall(
         video_url=video_info['url'],
         title=title,
         scheduled_timestamp=schedule_info['scheduled_timestamp'],
         preview_url=video_info.get('thumbnail')
     )
     
-    # 2. Публикуем пост на стену с прикреплённым VK клипом (по ID)
-    wall_result = None
-    if clip_result:
-        wall_result = smmbox_api.post_clip_to_wall(
-            text=title,
-            clip_response=clip_result,
-            scheduled_timestamp=schedule_info['scheduled_timestamp'] + 60
-        )
-    
     # Получаем статистику
     stats = scheduler.get_stats()
     scheduled_dt = schedule_info['scheduled_datetime']
     
-    if clip_result and wall_result:
+    if result:
         # Отмечаем как опубликованное
         scheduler.mark_as_posted(schedule_info['id'])
         
@@ -187,19 +178,7 @@ async def confirm_title(callback: CallbackQuery, state: FSMContext):
             f"📝 Название: <b>{title}</b>\n"
             f"🎬 Платформа: {video_info.get('platform', 'Unknown')}\n"
             f"📅 Запланировано на: <b>{scheduled_dt.strftime('%d.%m.%Y в %H:%M')}</b>\n"
-            f"📌 Клип + пост с клипом на стене (+1 мин)\n\n"
-            f"📊 Статистика очереди:\n"
-            f"• Сегодня: {stats['today']}/{stats['posts_per_day_limit']}\n"
-            f"• Завтра: {stats['tomorrow']}/{stats['posts_per_day_limit']}\n"
-            f"• Всего в очереди: {stats['total_pending']}",
-            parse_mode="HTML"
-        )
-    elif clip_result and not wall_result:
-        await callback.message.edit_text(
-            f"⚠️ Клип добавлен, но пост на стену не создан\n\n"
-            f"📝 Название: <b>{title}</b>\n"
-            f"📅 Запланировано на: <b>{scheduled_dt.strftime('%d.%m.%Y в %H:%M')}</b>\n"
-            f"📌 Только клип (проверь логи)\n\n"
+            f"📌 Запись с клипом на стене\n\n"
             f"📊 Статистика очереди:\n"
             f"• Сегодня: {stats['today']}/{stats['posts_per_day_limit']}\n"
             f"• Завтра: {stats['tomorrow']}/{stats['posts_per_day_limit']}\n"
@@ -255,28 +234,19 @@ async def process_custom_title(message: Message, state: FSMContext):
         platform=video_info.get('platform', 'Unknown')
     )
     
-    # 1. Публикуем видео (VK конвертирует в клип и публикует сразу)
-    clip_result = smmbox_api.post_video_clip_to_wall(
+    # Публикуем видео с текстом на стену (VK конвертирует в клип автоматически)
+    result = smmbox_api.post_video_clip_to_wall(
         video_url=video_info['url'],
         title=custom_title,
         scheduled_timestamp=schedule_info['scheduled_timestamp'],
         preview_url=video_info.get('thumbnail')
     )
     
-    # 2. Публикуем пост на стену с прикреплённым VK клипом (по ID)
-    wall_result = None
-    if clip_result:
-        wall_result = smmbox_api.post_clip_to_wall(
-            text=custom_title,
-            clip_response=clip_result,
-            scheduled_timestamp=schedule_info['scheduled_timestamp'] + 60
-        )
-    
     # Получаем статистику
     stats = scheduler.get_stats()
     scheduled_dt = schedule_info['scheduled_datetime']
     
-    if clip_result and wall_result:
+    if result:
         # Отмечаем как опубликованное
         scheduler.mark_as_posted(schedule_info['id'])
         
@@ -285,19 +255,7 @@ async def process_custom_title(message: Message, state: FSMContext):
             f"📝 Название: <b>{custom_title}</b>\n"
             f"🎬 Платформа: {video_info.get('platform', 'Unknown')}\n"
             f"📅 Запланировано на: <b>{scheduled_dt.strftime('%d.%m.%Y в %H:%M')}</b>\n"
-            f"📌 Клип + пост с клипом на стене (+1 мин)\n\n"
-            f"📊 Статистика очереди:\n"
-            f"• Сегодня: {stats['today']}/{stats['posts_per_day_limit']}\n"
-            f"• Завтра: {stats['tomorrow']}/{stats['posts_per_day_limit']}\n"
-            f"• Всего в очереди: {stats['total_pending']}",
-            parse_mode="HTML"
-        )
-    elif clip_result and not wall_result:
-        await processing_msg.edit_text(
-            f"⚠️ Клип добавлен, но пост на стену не создан\n\n"
-            f"📝 Название: <b>{custom_title}</b>\n"
-            f"📅 Запланировано на: <b>{scheduled_dt.strftime('%d.%m.%Y в %H:%M')}</b>\n"
-            f"📌 Только клип (проверь логи)\n\n"
+            f"📌 Запись с клипом на стене\n\n"
             f"📊 Статистика очереди:\n"
             f"• Сегодня: {stats['today']}/{stats['posts_per_day_limit']}\n"
             f"• Завтра: {stats['tomorrow']}/{stats['posts_per_day_limit']}\n"
