@@ -1,0 +1,36 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main  # или master, в зависимости от твоей ветки
+  workflow_dispatch:  # Позволяет запускать деплой вручную
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            cd /home/${{ secrets.SERVER_USER }}/tg_shorts_bot
+            
+            echo "📥 Pulling latest changes from GitHub..."
+            git pull origin main
+            
+            echo "🔧 Installing dependencies..."
+            source venv/bin/activate
+            pip install -r requirements.txt
+            
+            echo "🔄 Restarting bot service..."
+            sudo systemctl restart tg-shorts-bot
+            
+            echo "✅ Deployment completed!"
+            sudo systemctl status tg-shorts-bot --no-pager
