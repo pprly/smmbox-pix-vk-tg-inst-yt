@@ -48,6 +48,7 @@ class PostScheduler:
             Unix timestamp следующего свободного слота
         """
         now = datetime.now()
+        now_timestamp = int(now.timestamp())
         
         # Начинаем с сегодняшней даты в 00:00
         current_date = datetime(now.year, now.month, now.day)
@@ -73,14 +74,12 @@ class PostScheduler:
                     slot_time = self._calculate_slot_time(current_date, slot_number)
                     slot_timestamp = int(slot_time.timestamp())
                     
+                    # ВАЖНО: Пропускаем слоты в прошлом
+                    if slot_timestamp < now_timestamp:
+                        continue  # Идём к следующему слоту
+                    
                     # Проверяем, не занят ли этот конкретный timestamp
                     if not self._is_slot_taken(slot_timestamp):
-                        # Если слот в прошлом, берём текущее время + 5 минут
-                        now_timestamp = int(now.timestamp())
-                        
-                        if slot_timestamp < now_timestamp:
-                            slot_timestamp = now_timestamp + 300  # +5 минут от текущего времени
-                        
                         return slot_timestamp
             
             # Переходим к следующему дню
@@ -94,16 +93,16 @@ class PostScheduler:
             timestamp: Unix timestamp для проверки
             
         Returns:
-            True если слот занят, False если свободен
+            True если слот занят (pending или failed), False если свободен
         """
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Проверяем есть ли посты на это точное время
+        # Проверяем есть ли посты на это точное время (pending или failed)
         cursor.execute('''
             SELECT COUNT(*) FROM scheduled_posts 
             WHERE scheduled_date = ?
-            AND status = 'pending'
+            AND status IN ('pending', 'failed')
         ''', (timestamp,))
         
         count = cursor.fetchone()[0]
@@ -258,3 +257,38 @@ class PostScheduler:
         conn.close()
         
         logger.info(f"Пост ID={post_id} отмечен как опубликованный")
+    
+    def mark_as_failed(self, post_id: int):
+        """
+        Отметить пост как неудачный (слот занят в SMMBox)
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE scheduled_posts 
+            SET status = 'failed' 
+            WHERE id = ?
+        ''', (post_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Пост ID={post_id} отмечен как неудачный (слот занят)")
+    
+    def delete_post(self, post_id: int):
+        """
+        Удалить пост из расписания (используется при ошибке публикации)
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            DELETE FROM scheduled_posts 
+            WHERE id = ?
+        ''', (post_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        logger.info(f"Пост ID={post_id} удалён из расписания")

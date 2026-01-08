@@ -36,7 +36,7 @@ async def cmd_start(message: Message, state: FSMContext):
     """
     await state.clear()
     await message.answer(
-        "👋 Привет! Я бот для загрузки Shorts/Reels в VK.\n\n"
+        "👋 Привет! Я бот для загрузки Shorts/Reels в VK как клипов.\n\n"
         "Отправь мне ссылку на:\n"
         "• YouTube Shorts\n"
         "• TikTok видео\n"
@@ -157,13 +157,30 @@ async def confirm_title(callback: CallbackQuery, state: FSMContext):
         platform=video_info.get('platform', 'Unknown')
     )
     
-    # Публикуем видео с текстом на стену (VK конвертирует в клип автоматически)
-    result = smmbox_api.post_video_clip_to_wall(
-        video_url=video_info['url'],
-        title=title,
-        scheduled_timestamp=schedule_info['scheduled_timestamp'],
-        preview_url=video_info.get('thumbnail')
-    )
+    # Публикуем видео с текстом на стену (VK конвертирует в клип)
+    # Пробуем до 3 раз если время занято
+    result = None
+    for attempt in range(3):
+        result = smmbox_api.post_video_clip_to_wall(
+            video_url=video_info['url'],
+            title=title,
+            scheduled_timestamp=schedule_info['scheduled_timestamp'],
+            preview_url=video_info.get('thumbnail')
+        )
+        
+        if result:
+            break  # Успех!
+        
+        # Если не успех, помечаем слот как занятый и пробуем следующий
+        scheduler.mark_as_failed(schedule_info['id'])
+        logger.info(f"Попытка {attempt + 1}/3: время занято, пробую следующий слот...")
+        
+        # Получаем новый слот
+        schedule_info = scheduler.add_post(
+            video_url=video_info['url'],
+            video_title=title,
+            platform=video_info.get('platform', 'Unknown')
+        )
     
     # Получаем статистику
     stats = scheduler.get_stats()
@@ -186,9 +203,12 @@ async def confirm_title(callback: CallbackQuery, state: FSMContext):
             parse_mode="HTML"
         )
     else:
+        # Помечаем последний слот как занятый
+        scheduler.mark_as_failed(schedule_info['id'])
+        
         await callback.message.edit_text(
-            "❌ Ошибка при загрузке видео.\n"
-            "Проверь логи для подробностей."
+            "❌ Все слоты на сегодня заняты.\n"
+            "Попробуй позже или очисти отложенные посты в SMMBox."
         )
     
     await state.clear()
@@ -234,13 +254,30 @@ async def process_custom_title(message: Message, state: FSMContext):
         platform=video_info.get('platform', 'Unknown')
     )
     
-    # Публикуем видео с текстом на стену (VK конвертирует в клип автоматически)
-    result = smmbox_api.post_video_clip_to_wall(
-        video_url=video_info['url'],
-        title=custom_title,
-        scheduled_timestamp=schedule_info['scheduled_timestamp'],
-        preview_url=video_info.get('thumbnail')
-    )
+    # Публикуем видео с текстом на стену (VK конвертирует в клип)
+    # Пробуем до 3 раз если время занято
+    result = None
+    for attempt in range(3):
+        result = smmbox_api.post_video_clip_to_wall(
+            video_url=video_info['url'],
+            title=custom_title,
+            scheduled_timestamp=schedule_info['scheduled_timestamp'],
+            preview_url=video_info.get('thumbnail')
+        )
+        
+        if result:
+            break  # Успех!
+        
+        # Если не успех, помечаем слот как занятый и пробуем следующий
+        scheduler.mark_as_failed(schedule_info['id'])
+        logger.info(f"Попытка {attempt + 1}/3: время занято, пробую следующий слот...")
+        
+        # Получаем новый слот
+        schedule_info = scheduler.add_post(
+            video_url=video_info['url'],
+            video_title=custom_title,
+            platform=video_info.get('platform', 'Unknown')
+        )
     
     # Получаем статистику
     stats = scheduler.get_stats()
@@ -263,9 +300,12 @@ async def process_custom_title(message: Message, state: FSMContext):
             parse_mode="HTML"
         )
     else:
+        # Помечаем последний слот как занятый
+        scheduler.mark_as_failed(schedule_info['id'])
+        
         await processing_msg.edit_text(
-            "❌ Ошибка при загрузке видео.\n"
-            "Проверь логи для подробностей."
+            "❌ Все слоты на сегодня заняты.\n"
+            "Попробуй позже или очисти отложенные посты в SMMBox."
         )
     
     await state.clear()
