@@ -17,7 +17,13 @@ class VideoDownloader:
             instagram_cookies: Путь к файлу cookies для Instagram (опционально)
         """
         # Проверяем существует ли файл cookies для Instagram
-        cookies_path = instagram_cookies or os.path.join(os.path.dirname(__file__), '..', 'instagram_cookies.txt')
+        if instagram_cookies:
+            cookies_path = instagram_cookies
+        else:
+            # Сначала пробуем относительный путь
+            relative_path = os.path.join(os.path.dirname(__file__), '..', 'instagram_cookies.txt')
+            # Резолвим в абсолютный путь
+            cookies_path = os.path.abspath(relative_path)
         
         if os.path.exists(cookies_path):
             logger.info(f"Найден файл cookies для Instagram: {cookies_path}")
