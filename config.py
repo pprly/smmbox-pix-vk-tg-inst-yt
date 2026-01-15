@@ -11,7 +11,7 @@ SMMBOX_API_TOKEN = os.getenv('SMMBOX_API_TOKEN')
 SMMBOX_API_URL = 'https://smmbox.com/api/v1'
 
 # Настройки постинга
-POSTS_PER_DAY = 7
+POSTS_PER_DAY = 6
 
 # Проверка наличия обязательных переменных
 if not TELEGRAM_BOT_TOKEN:
