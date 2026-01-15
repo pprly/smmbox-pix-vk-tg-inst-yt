@@ -11,12 +11,17 @@ class BasePlatform(ABC):
     Базовый класс для всех платформ
     """
     
-    def __init__(self):
+    def __init__(self, cookies_file: Optional[str] = None):
         self.ydl_opts = {
             'quiet': True,
             'no_warnings': True,
             'extract_flat': False,
         }
+        
+        # Добавляем cookies если указан файл
+        if cookies_file:
+            self.ydl_opts['cookiefile'] = cookies_file
+            logger.info(f"Используем cookies из файла: {cookies_file}")
     
     @abstractmethod
     def get_platform_name(self) -> str:

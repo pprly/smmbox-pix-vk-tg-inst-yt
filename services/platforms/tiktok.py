@@ -9,6 +9,9 @@ class TikTokPlatform(BasePlatform):
     Класс для работы с TikTok
     """
     
+    def __init__(self):
+        super().__init__()
+    
     def get_platform_name(self) -> str:
         return "TikTok"
     

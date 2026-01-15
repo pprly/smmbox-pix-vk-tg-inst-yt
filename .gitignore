@@ -52,3 +52,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 temp/
+
+# Instagram cookies (содержат приватные данные)
+instagram_cookies.txt
+cookies.txt

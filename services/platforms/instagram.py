@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from .base import BasePlatform
 
 logger = logging.getLogger(__name__)
@@ -8,6 +9,9 @@ class InstagramPlatform(BasePlatform):
     """
     Класс для работы с Instagram Reels
     """
+    
+    def __init__(self, cookies_file: Optional[str] = None):
+        super().__init__(cookies_file=cookies_file)
     
     def get_platform_name(self) -> str:
         return "Instagram"

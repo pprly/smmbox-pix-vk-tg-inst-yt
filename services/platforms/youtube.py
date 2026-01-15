@@ -9,6 +9,9 @@ class YouTubePlatform(BasePlatform):
     Класс для работы с YouTube Shorts
     """
     
+    def __init__(self):
+        super().__init__()
+    
     def get_platform_name(self) -> str:
         return "YouTube"
     
